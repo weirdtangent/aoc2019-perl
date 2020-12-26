@@ -87,8 +87,9 @@ sub run_intcode {
     }
     elsif ($opcode eq '04') {
       $output = ($param_mode[2] eq '0' ? $code->[$code->[$iptr+1]] : $code->[$iptr+1]);
-      # print("PAUSED output was $output\n") unless $output == 0 || $code->[$iptr+2] == 99;
       $iptr += 2;
+      # if next code isn't a HALT, we return this output
+      # plus the iptr so we can be resumed if needed
       return ($output, 0, $iptr) unless $code->[$iptr] == 99;
     }
     elsif ($opcode eq '05') {
@@ -116,7 +117,9 @@ sub run_intcode {
   }
   print "For input(s) [".join(',', @$input)."], diagnostic code was $output\n" if @$input && $output;
 
-  return ($output, 1, $iptr);
+  # we hit a HALT, so return the output
+  # if we are "resumed", our only choice is to start from scratch
+  return ($output, 1, 0);
 }
 
 __DATA__
