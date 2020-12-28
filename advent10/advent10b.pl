@@ -15,7 +15,6 @@ our $max_col = 0;
 # our space symbols
 our $asteroid = '#';
 our $empty_space = '.';
-our $blasted_asteroid = '_';
 our $colored_station = "\033[32;1m❉\033[0m";
 our $colored_asteroid = "\033[35;1m☀︎\033[0m";
 
@@ -46,8 +45,7 @@ print "Space is $max_row x $max_col with $total_asteroids asteroids\n";
 # but the puzzel calls for the 200th asteroid to be blasted!
 start_blasting($station_row, $station_col, 200);
 
-# remove clutter of previously-blasted asteroids
-# and then color the asteriods we can see (that aren't blocked)
+# color the asteriods we can see (that aren't blocked)
 sub mark_visible {
   my ($row, $col) = @_;
 
@@ -56,7 +54,6 @@ sub mark_visible {
   for my $check_row (0..$max_row) {
     for my $check_col (0..$max_col) {
       next if $check_row == $row && $check_col == $col;
-      $space[$check_row][$check_col] = $empty_space      if $space[$check_row][$check_col] eq $blasted_asteroid; # clear out previously blasted asteroid
       next if $space[$check_row][$check_col] eq $empty_space; # only care if this is an asteroid to possibly see 
       $space[$check_row][$check_col] = $colored_asteroid if can_see($row,$col,$check_row,$check_col);
     }
@@ -119,7 +116,7 @@ sub start_blasting {
       print "Blast $degree{$key}\n";
       my ($blast_row, $blast_col) = split ',', $degree{$key};
       $count++;
-      $space[$blast_row][$blast_col] = $blasted_asteroid;
+      $space[$blast_row][$blast_col] = $empty_space;
       show_space();
       die "\nJust blasted #$stop_at, at $blast_row,$blast_col (".($blast_col * 100 + $blast_row).")\n" if $count == $stop_at;
     }
@@ -129,7 +126,7 @@ sub start_blasting {
       print "Blast $degree{$key}\n";
       my ($blast_row, $blast_col) = split ',', $degree{$key};
       $count++;
-      $space[$blast_row][$blast_col] = $blasted_asteroid;
+      $space[$blast_row][$blast_col] = $empty_space;
       show_space();
       die "\nJust blasted #$stop_at, at $blast_row,$blast_col (".($blast_col * 100 + $blast_row).")\n" if $count == $stop_at;
     }
