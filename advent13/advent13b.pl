@@ -4,6 +4,9 @@ use v5.26;
 use warnings;
 use strict;
 
+# turn off buffering
+$| = 1;
+
 use List::Util qw/max/;
 use Time::HiRes qw/usleep/;
 
@@ -13,10 +16,10 @@ my @intcode = split ',', $intcode;
 
 our (@grid, $result, $halted, $iptr, $base, $blocks_left, $x, $y);
 our @tiles = (" ",                   # empty space
-              "\033[31;1m🀫\033[0m",  # border wall
-              "\033[35;1m❑\033[0m",  # block
-              "_",                   # paddle
-              "\033[33;1m☢︎\033[0m",  # ball
+              "\033[35;1mX\033[0m",  # border wall
+              "\033[qq;1m#\033[0m",  # block
+              "⎺",                   # paddle
+              "\033[33;1mO\033[0m",  # ball
 );
 our ($max_x, $max_y) = (39,19);
 our $paddle_x = 0;
@@ -33,31 +36,37 @@ print "Final Score: $score\n";
 
 sub run_game {
   my $waiting_on_first_block = 1;
+  my $waiting_on_final_score = 1;
 
   do {
+    $waiting_on_final_score = 0 if !$blocks_left && $score > 0;
+
     # set "joystick" so our paddle will automatically follow the ball and always hit it
-    my $joystick = ($ball_x <=> $paddle_x);
+    my $joystick =  ($ball_x <=> $paddle_x);
 
     ($x, $halted, $iptr, $base) = run_intcode(\@intcode, $iptr//0, $base//0, [ $joystick ], 0);
     ($y, $halted, $iptr, $base) = run_intcode(\@intcode, $iptr//0, $base//0, [ $joystick ], 0);
     ($result, $halted, $iptr, $base) = run_intcode(\@intcode, $iptr//0, $base//0, [ $joystick ], 0);
 
-    if (defined $result) {
+    if (defined $result && defined $x && defined $y) {
       if ($x == -1 && $y == 0) {
         $score = $result;
         print "\033[1;0fScore: $score\033[K";
       }
-      else {
+      elsif ($result >= 0 && $result <= 4) {
         $blocks_left--                              if ($grid[$x][$y]//0) == 2 && $result == 0; # if we removed what used to be a block
         $waiting_on_first_block = 0, $blocks_left++ if ($grid[$x][$y]//0) != 2 && $result == 2; # if we add a block that wasn't already there
         $paddle_x = $x                              if $result == 3;
         $ball_x = $x                                if $result == 4;
         $grid[$x][$y] = $result;
-        print "\033[".($y+2).";".($x+1)."f".$tiles[$result]."\033[23;0f";
-        usleep 1_000 if $result =~ /[34]/;
+        my $square = $tiles[$result];
+        my $rcol = 30 + (($y-2) % 5);
+        $square =~ s/qq/$rcol/ if $result == 2;
+        print "\033[".($y+2).";".($x+1)."f".$square."\033[23;0f";
+        usleep 10_000 if $result == 4;
       }
     }
-  } while $waiting_on_first_block || $blocks_left;
+  } while $waiting_on_first_block || $blocks_left || $waiting_on_final_score;
 }
 
 sub run_intcode {
